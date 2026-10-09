@@ -4,8 +4,12 @@ from datetime import timedelta
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'ghost-panel-secret-key-2024'
     db_url = os.environ.get('DATABASE_URL', 'sqlite:///flash_sms.db')
+    # SQLAlchemy 2.x defaults to the psycopg (v3) dialect which is not
+    # installed; pin the psycopg2 dialect explicitly.
     if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
     SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
