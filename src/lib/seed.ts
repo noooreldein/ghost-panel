@@ -9,6 +9,13 @@ import { generateApiKey, hashPassword } from "@/lib/auth";
 /*  fresh database the server boots against.                          */
 /* ------------------------------------------------------------------ */
 
+/* Optional schema isolation (see DB_SCHEMA in src/db/index.ts). */
+const schemaName = process.env.DB_SCHEMA?.trim() ?? "";
+const SCHEMA_DDL: string[] =
+  schemaName && /^[A-Za-z_][A-Za-z0-9_]*$/.test(schemaName)
+    ? [`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`]
+    : [];
+
 const DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS users (
     id serial PRIMARY KEY,
@@ -309,7 +316,7 @@ async function seedPanelSettings(): Promise<void> {
 export async function bootstrapDatabase(retries = 6): Promise<void> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      for (const statement of DDL) {
+      for (const statement of [...SCHEMA_DDL, ...DDL]) {
         await db.execute(sql.raw(statement));
       }
       await seedAccounts();
