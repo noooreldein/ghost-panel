@@ -22,6 +22,17 @@ interface PanelSettingsRow {
   themeLabel: string;
 }
 
+/** White icon disappears on light accents — switch to ink when luminance is high. */
+function swatchIconTone(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "#ffffff";
+  const v = m[1];
+  const r = parseInt(v.slice(0, 2), 16);
+  const g = parseInt(v.slice(2, 4), 16);
+  const b = parseInt(v.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b > 150) ? "#0f172a" : "#ffffff";
+}
+
 export default function BrandingPage() {
   const router = useRouter();
   const me = useMe();
@@ -109,35 +120,47 @@ export default function BrandingPage() {
             <h2 className="font-semibold text-slate-900">Custom accent</h2>
             <p className="text-xs text-slate-500">Only used when the Custom theme is selected.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setTheme("custom");
-              setSaved(false);
-            }}
-            className={cx(
-              "flex w-full items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all",
-              theme === "custom" ? "border-blue-500 bg-blue-50/50 shadow-md" : "border-slate-200 hover:border-slate-300"
-            )}
-          >
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm" style={{ background: customColor }}>
-              <Palette className="h-5 w-5 text-white" strokeWidth={1.75} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900">Custom</p>
-              <p className="mt-0.5 truncate text-xs text-slate-500">Pick any hex accent; the whole blue ramp is derived from it.</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setTheme("custom");
+                setSaved(false);
+              }}
+              className={cx(
+                "flex flex-1 items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all",
+                theme === "custom" ? "border-blue-500 bg-blue-50/50 shadow-md" : "border-slate-200 hover:border-slate-300"
+              )}
+            >
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 shadow-sm"
+                style={{ background: customColor }}
+              >
+                <Palette
+                  className="h-5 w-5"
+                  strokeWidth={1.75}
+                  style={{ color: swatchIconTone(customColor) }}
+                />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-900">Custom</p>
+                <p className="mt-0.5 truncate text-xs text-slate-500">Pick any hex accent; the whole blue ramp is derived from it.</p>
+              </div>
+              {theme === "custom" && <Badge tone="blue">Selected</Badge>}
+            </button>
             <input
               type="color"
               value={customColor}
               onChange={(e) => {
                 setCustomColor(e.target.value);
                 setTheme("custom");
+                setSaved(false);
               }}
-              className="h-9 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
+              className="h-[76px] w-16 shrink-0 cursor-pointer rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm transition-all hover:border-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/10"
               aria-label="Custom accent color"
+              title="Pick a custom accent color"
             />
-          </button>
+          </div>
         </Card>
 
         <Card className="p-6 lg:col-span-2">
@@ -154,7 +177,6 @@ export default function BrandingPage() {
                 type="button"
                 onClick={() => {
                   setTheme(t.key);
-                  setCustomColor(t.primary);
                   setSaved(false);
                 }}
                 className={cx(
