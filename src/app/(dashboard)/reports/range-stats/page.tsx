@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Network } from "lucide-react";
+import { useMe } from "@/lib/use-me";
 import { apiGet, fmtNum } from "@/lib/client";
 import { Badge, Card, cx, EmptyState, LoadingRows, PageHeader, TableShell, tdCls, thCls } from "@/components/ui";
 
@@ -17,6 +18,8 @@ interface RangeStatRow {
 }
 
 export default function RangeStatsPage() {
+  const me = useMe();
+  const isAdmin = me?.role === "admin";
   const [rows, setRows] = useState<RangeStatRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +54,7 @@ export default function RangeStatsPage() {
               <th className={thCls}>Received</th>
               <th className={thCls}>Codes</th>
               <th className={thCls}>Hit rate</th>
-              <th className={thCls}>Revenue</th>
+              {isAdmin && <th className={thCls}>Revenue</th>}
               <th className={thCls}>Share</th>
             </tr>
           </thead>

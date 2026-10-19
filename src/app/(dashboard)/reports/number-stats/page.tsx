@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Hash } from "lucide-react";
+import { useMe } from "@/lib/use-me";
 import { apiGet, fmtDateTime, fmtNum } from "@/lib/client";
 import { Card, cx, EmptyState, LoadingRows, PageHeader, StatusPill, TableShell, tdCls, thCls } from "@/components/ui";
 
@@ -17,6 +18,8 @@ interface NumberStatRow {
 }
 
 export default function NumberStatsPage() {
+  const me = useMe();
+  const isAdmin = me?.role === "admin";
   const [rows, setRows] = useState<NumberStatRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 

@@ -276,6 +276,36 @@ export const panelSettings = pgTable("panel_settings", {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Tenant sub-panels (user-managed white-label boards)              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A user-owned sub-panel ("لوح"): every account can create its own boards
+ * with their own accent identity and a private sync key. Users only ever
+ * see the panels they own; admins see all.
+ */
+export const panelBoards = pgTable(
+  "panel_boards",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    accentColor: varchar("accent_color", { length: 9 }).notNull().default("#2563eb"),
+    status: varchar("status", { length: 16 }).notNull().default("active"), // active | suspended
+    syncKey: varchar("sync_key", { length: 64 }).notNull(),
+    notes: varchar("notes", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("panel_boards_owner_idx").on(t.ownerId),
+    index("panel_boards_sync_key_idx").on(t.syncKey),
+  ]
+);
+
+/* ------------------------------------------------------------------ */
 /*  Agent range limits & credit notes (merged from Panel-sma)        */
 /* ------------------------------------------------------------------ */
 
@@ -341,3 +371,4 @@ export type Announcement = typeof announcements.$inferSelect;
 export type PanelSettings = typeof panelSettings.$inferSelect;
 export type AgentRangeLimit = typeof agentRangeLimits.$inferSelect;
 export type CreditNote = typeof creditNotes.$inferSelect;
+export type PanelBoard = typeof panelBoards.$inferSelect;

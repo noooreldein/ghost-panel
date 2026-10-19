@@ -79,59 +79,38 @@ export interface ResolvedSettings {
 
 /* ---- color math ------------------------------------------------- */
 
-function hexToHsl(hex: string): [number, number, number] {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return [221, 83, 54]; // default blue-600 hsl
-  const n = parseInt(m[1], 16);
-  const r = ((n >> 16) & 255) / 255;
-  const g = ((n >> 8) & 255) / 255;
-  const b = (n & 255) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  let h = 0;
-  let s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
-        break;
-      case g:
-        h = ((b - r) / d + 2) * 60;
-        break;
-      default:
-        h = ((r - g) / d + 4) * 60;
-    }
-  }
-  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
-}
-
-function hsl(h: number, s: number, l: number): string {
-  const sc = Math.min(Math.max(s, 0), 100);
-  const lc = Math.min(Math.max(l, 0), 100);
-  return `hsl(${h} ${sc}% ${lc}%)`;
-}
-
 /**
  * Build the runtime override CSS for the blue family based on a primary hex.
- * Lightness ladder approximates Tailwind's blue ramp:
- *   50 -> 96, 100 -> 91, 300 -> 77, 500 -> 62, 600 -> base, 700 -> -7, 800 -> -13, 950 -> 15
+ *
+ * Tailwind v4 utilities resolve through CSS variables, so overriding the
+ * blue ramp recolors the whole panel. Tints and shades are derived with
+ * color-mix in the OkLab gamut, which keeps hues true and tints clean on
+ * light backgrounds (no neon 50/100 steps, no hue drift on dark shades).
+ * The sky accents (chart highlights, login art) follow the same primary
+ * so the whole identity stays coherent.
  */
 export function themeCss(primaryColor: string): string {
-  const [h, s, baseL] = hexToHsl(primaryColor);
-  if (s === 0 && h === 221 && baseL === 54) return ""; // default ghost blue
-  const l = (delta: number) => Math.min(Math.max(baseL + delta, 0), 100);
-  return `:root{--color-blue-50:${hsl(h, s, 96)};--color-blue-100:${hsl(h, s, 91)};--color-blue-300:${hsl(
-    h,
-    s,
-    77
-  )};--color-blue-500:${hsl(h, s, 62)};--color-blue-600:${hsl(h, s, baseL)};--color-blue-700:${hsl(
-    h,
-    s,
-    l(-7)
-  )};--color-blue-800:${hsl(h, s, l(-13))};--color-blue-950:${hsl(h, s, 15)};}`;
+  const primary = (primaryColor || "").trim().toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(primary)) return ""; // nothing valid to apply
+  if (primary === "#2563eb") return ""; // ghost default == the native blue ramp
+  const tint = (pct: number) => `color-mix(in oklch, ${primary} ${pct}%, white)`;
+  const shade = (pct: number) => `color-mix(in oklch, ${primary} ${pct}%, black)`;
+  const v = [
+    `--color-blue-50:${tint(7)}`,
+    `--color-blue-100:${tint(14)}`,
+    `--color-blue-200:${tint(28)}`,
+    `--color-blue-300:${tint(44)}`,
+    `--color-blue-400:${tint(62)}`,
+    `--color-blue-500:${tint(82)}`,
+    `--color-blue-600:${primary}`,
+    `--color-blue-700:${shade(14)}`,
+    `--color-blue-800:${shade(28)}`,
+    `--color-blue-900:${shade(44)}`,
+    `--color-blue-950:${shade(60)}`,
+    `--color-sky-300:${tint(30)}`,
+    `--color-sky-400:${tint(45)}`,
+  ];
+  return `:root{${v.join(";")};}`;
 }
 
 /** Resolve effective primary color: theme key wins unless a custom color is set. */

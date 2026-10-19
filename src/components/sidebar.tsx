@@ -49,7 +49,6 @@ export interface NavEntry {
 }
 
 export const NAV: NavEntry[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   {
     label: "SMS",
     icon: MessageSquareText,
@@ -61,7 +60,7 @@ export const NAV: NavEntry[] = [
   },
   { label: "SMS Test Panel", icon: FlaskConical, href: "/sms/test" },
   { label: "My Numbers", icon: DownloadCloud, href: "/my-numbers" },
-  { label: "Clients", icon: UsersRound, href: "/clients" },
+  { label: "Clients", icon: UsersRound, href: "/clients", adminOnly: true },
   {
     label: "SMS Report & Stats",
     icon: ChartColumnBig,
@@ -70,7 +69,7 @@ export const NAV: NavEntry[] = [
       { label: "SMS Stats", icon: ChartSpline, href: "/reports/sms-stats" },
       { label: "SMS Range Stats", icon: Network, href: "/reports/range-stats" },
       { label: "SMS Numbers Stats", icon: Hash, href: "/reports/number-stats" },
-      { label: "SMS Client Stats", icon: ContactRound, href: "/reports/client-stats" },
+      { label: "SMS Client Stats", icon: ContactRound, href: "/reports/client-stats", adminOnly: true },
     ],
   },
   {

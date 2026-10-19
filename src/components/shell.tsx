@@ -24,16 +24,17 @@ export default function Shell({ user, settings, children }: { user: SafeUser; se
   const [currency, setCurrency] = useState<Currency>("USD");
   const [hydrated, setHydrated] = useState(false);
 
+  /* Restore client prefs after hydration — deferred so the server render
+     stays deterministic (no synchronous setState in the effect body). */
   useEffect(() => {
-    setCollapsed(localStorage.getItem("ghost.sidebar") === "1");
-    const c = getCookie("ghost.currency");
-    if (c && (CURRENCIES as readonly string[]).includes(c)) setCurrency(c as Currency);
-    setHydrated(true);
+    const id = setTimeout(() => {
+      setCollapsed(localStorage.getItem("ghost.sidebar") === "1");
+      const c = getCookie("ghost.currency");
+      if (c && (CURRENCIES as readonly string[]).includes(c)) setCurrency(c as Currency);
+      setHydrated(true);
+    }, 0);
+    return () => clearTimeout(id);
   }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   function onMenu() {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, Download, FileText, Search } from "lucide-react";
+import { useMe } from "@/lib/use-me";
 import { apiGet, daysAgoIso, fmtDateTime, fmtNum, qs, todayIso } from "@/lib/client";
 import {
   Badge,
@@ -42,6 +43,8 @@ const PAGE_LIMIT = 20;
 const SUMMARY_KEYS = ["delivered", "received", "rejected", "expired"] as const;
 
 export default function SmsReportPage() {
+  const me = useMe();
+  const isAdmin = me?.role === "admin";
   const [rows, setRows] = useState<MessageRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<Record<string, number>>({});
@@ -83,7 +86,7 @@ export default function SmsReportPage() {
       <PageHeader
         icon={FileText}
         title="SMS Report"
-        subtitle="Raw termination logs — delivery state, extracted codes, latency and payout per record."
+        subtitle={isAdmin ? "Raw termination logs — delivery state, extracted codes, latency and payout per record." : "Raw termination logs for your numbers — delivery state, extracted codes and latency."}
         actions={
           <a href={csvHref} download>
             <Btn icon={Download} variant="dark">
@@ -156,8 +159,8 @@ export default function SmsReportPage() {
               <th className={thCls}>Message</th>
               <th className={thCls}>Code</th>
               <th className={thCls}>Status</th>
-              <th className={thCls}>Rate</th>
-              <th className={thCls}>Supplier</th>
+              {isAdmin && <th className={thCls}>Rate</th>}
+              {isAdmin && <th className={thCls}>Supplier</th>}
               <th className={thCls}>Latency</th>
             </tr>
           </thead>
@@ -190,10 +193,12 @@ export default function SmsReportPage() {
                   <td className={tdCls}>
                     <StatusPill status={m.status} />
                   </td>
-                  <td className={cx(tdCls, "tnum whitespace-nowrap")}>
-                    {m.rate} <span className="text-[10px] text-slate-400">{m.currency}</span>
-                  </td>
-                  <td className={cx(tdCls, "tnum text-slate-500")}>{m.supplier ?? "—"}</td>
+                  {isAdmin && (
+                    <td className={cx(tdCls, "tnum whitespace-nowrap")}>
+                      {m.rate} <span className="text-[10px] text-slate-400">{m.currency}</span>
+                    </td>
+                  )}
+                  {isAdmin && <td className={cx(tdCls, "tnum text-slate-500")}>{m.supplier ?? "—"}</td>}
                   <td className={cx(tdCls, "tnum text-slate-500")}>{m.latencyMs !== null ? `${m.latencyMs} ms` : "—"}</td>
                 </tr>
               ))

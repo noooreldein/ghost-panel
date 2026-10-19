@@ -1,16 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { getPanelSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Ghost Panel — SMS Termination Hub",
-  description:
-    "Ghost Panel: carrier-grade SMS hub & termination console. Ranges, numbers, OTP extraction, client billing, multi-currency ledger and a live REST pipeline.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { panelName } = await getPanelSettings();
+  return {
+    title: `${panelName} — SMS Termination Hub`,
+    description:
+      `${panelName}: carrier-grade SMS hub & termination console. Ranges, numbers, OTP extraction, client billing, multi-currency ledger and a live REST pipeline.`,
+  };
+}
 
-export const viewport: Viewport = {
-  themeColor: "#1d4ed8",
-};
+export async function generateViewport(): Promise<Viewport> {
+  const { primaryColor } = await getPanelSettings();
+  return { themeColor: primaryColor };
+}
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

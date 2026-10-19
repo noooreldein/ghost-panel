@@ -69,7 +69,8 @@ export default function StatementPage() {
   }, [currency, from, to, direction, page]);
 
   useEffect(() => {
-    load();
+    const id = setTimeout(load, 0);
+    return () => clearTimeout(id);
   }, [load]);
 
   const csvHref = `/api/statements${qs({ currency, from, to, direction, format: "csv" })}`;

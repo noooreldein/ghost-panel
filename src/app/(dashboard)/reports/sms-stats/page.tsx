@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChartSpline, Inbox, Percent, Wallet, Zap } from "lucide-react";
+import { useMe } from "@/lib/use-me";
 import { apiGet, fmtMoney, fmtNum } from "@/lib/client";
 import { Bars } from "@/components/charts";
 import { Badge, Card, EmptyState, PageHeader, Spinner } from "@/components/ui";
@@ -12,6 +13,8 @@ interface OverviewData {
 }
 
 export default function SmsStatsPage() {
+  const me = useMe();
+  const isAdmin = me?.role === "admin";
   const [data, setData] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,34 +85,36 @@ export default function SmsStatsPage() {
         )}
       </Card>
 
-      <Card className="mt-4 p-5">
-        <h3 className="mb-4 flex items-center gap-2 text-[14.5px] font-bold text-slate-900">
-          <Wallet className="h-4 w-4 text-blue-600" strokeWidth={1.9} />
-          Rated revenue by currency
-        </h3>
-        {data ? (
-          Number(data.totals.revenueUsd) + Number(data.totals.revenueEur) + Number(data.totals.revenueEgp) === 0 ? (
-            <EmptyState
-              icon={Wallet}
-              title="No rated traffic yet"
-              description="Revenue accrues as messages terminate against rated ranges. Rates attach automatically via longest-prefix resolution."
-            />
+      {isAdmin && (
+  <Card className="mt-4 p-5">
+          <h3 className="mb-4 flex items-center gap-2 text-[14.5px] font-bold text-slate-900">
+            <Wallet className="h-4 w-4 text-blue-600" strokeWidth={1.9} />
+            Rated revenue by currency
+          </h3>
+          {data ? (
+            Number(data.totals.revenueUsd) + Number(data.totals.revenueEur) + Number(data.totals.revenueEgp) === 0 ? (
+              <EmptyState
+                icon={Wallet}
+                title="No rated traffic yet"
+                description="Revenue accrues as messages terminate against rated ranges. Rates attach automatically via longest-prefix resolution."
+              />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(["USD", "EUR", "EGP"] as const).map((c) => (
+                  <div key={c} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                    <p className="tnum text-[9.5px] font-bold tracking-[0.18em] text-slate-400">{c}</p>
+                    <p className="tnum mt-1 text-xl font-bold text-slate-900">
+                      {fmtMoney(c === "USD" ? data.totals.revenueUsd : c === "EUR" ? data.totals.revenueEur : data.totals.revenueEgp, c)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )
           ) : (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(["USD", "EUR", "EGP"] as const).map((c) => (
-                <div key={c} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-                  <p className="tnum text-[9.5px] font-bold tracking-[0.18em] text-slate-400">{c}</p>
-                  <p className="tnum mt-1 text-xl font-bold text-slate-900">
-                    {fmtMoney(c === "USD" ? data.totals.revenueUsd : c === "EUR" ? data.totals.revenueEur : data.totals.revenueEgp, c)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )
-        ) : (
-          <div className="skeleton h-20 w-full" />
-        )}
-      </Card>
+            <div className="skeleton h-20 w-full" />
+          )}
+        </Card>
+)}
     </div>
   );
 }

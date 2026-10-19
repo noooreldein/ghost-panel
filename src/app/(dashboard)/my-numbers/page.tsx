@@ -60,7 +60,8 @@ export default function MyNumbersPage() {
   }, [q, status, page]);
 
   useEffect(() => {
-    load();
+    const id = setTimeout(load, 0);
+    return () => clearTimeout(id);
   }, [load]);
 
   const activeCount = rows ? rows.filter((r) => r.status === "active").length : 0;

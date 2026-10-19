@@ -1,7 +1,8 @@
-import { and, count, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lte, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { clients, smsMessages, smsRanges } from "@/db/schema";
 import { csvResponse, ok, pagination, parseDateBoundary, requireAuth, str } from "@/lib/http";
+import { messageVisibility, stripCommercial } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,16 @@ export async function GET(req: Request) {
   const from = parseDateBoundary(url.searchParams.get("from"));
   const to = parseDateBoundary(url.searchParams.get("to"), true);
 
+  /* --- user-edition scoping: non-admins see only their own numbers --- */
+  const visibility = await messageVisibility(auth.user!);
+  if (visibility.kind === "none") {
+    return ok({ total: 0, page: 1, summary: {}, rows: [] });
+  }
+
+  const fields = stripCommercial(selectFields, auth.user!);
+
   const filters: SQL[] = [];
+  if (visibility.kind === "own") filters.push(visibility.filter);
   if (scope === "live") filters.push(eq(smsMessages.isTest, false));
   if (scope === "test") filters.push(eq(smsMessages.isTest, true));
   if (q) filters.push(or(ilike(smsMessages.msisdn, `%${q}%`), ilike(smsMessages.body, `%${q}%`), ilike(smsMessages.senderId, `%${q}%`))!);
@@ -50,7 +60,7 @@ export async function GET(req: Request) {
   /* CSV export path */
   if (url.searchParams.get("format") === "csv") {
     const rows = await db
-      .select(selectFields)
+      .select(fields)
       .from(smsMessages)
       .leftJoin(smsRanges, eq(smsMessages.rangeId, smsRanges.id))
       .leftJoin(clients, eq(smsMessages.clientId, clients.id))
@@ -58,31 +68,33 @@ export async function GET(req: Request) {
       .orderBy(desc(smsMessages.id))
       .limit(5000);
     const stamp = new Date().toISOString().slice(0, 10);
+    const admin = visibility.kind === "admin";
     return csvResponse(
       `ghost-sms-report-${stamp}.csv`,
-      ["Timestamp", "MSISDN", "Sender ID", "Message", "Code", "Status", "Rate", "Payout", "Currency", "Supplier", "Range", "Client", "Latency (ms)"],
-      rows.map((r) => [
-        r.createdAt.toISOString(),
-        r.msisdn,
-        r.senderId,
-        r.body,
-        r.otpCode,
-        r.status,
-        r.rate,
-        r.payout,
-        r.currency,
-        r.supplier,
-        r.rangeName,
-        r.clientName,
-        r.latencyMs,
-      ])
+      admin
+        ? ["Timestamp", "MSISDN", "Sender ID", "Message", "Code", "Status", "Rate", "Payout", "Currency", "Supplier", "Range", "Client", "Latency (ms)"]
+        : ["Timestamp", "MSISDN", "Sender ID", "Message", "Code", "Status", "Currency", "Range", "Latency (ms)"],
+      rows.map((r) => {
+        const base = [
+          r.createdAt.toISOString(),
+          r.msisdn,
+          r.senderId,
+          r.body,
+          r.otpCode,
+          r.status,
+        ];
+        const tail = admin
+          ? [r.rate, r.payout, r.currency, r.supplier, r.rangeName, r.clientName, r.latencyMs]
+          : [r.currency, r.rangeName, r.latencyMs];
+        return [...base, ...tail];
+      })
     );
   }
 
   const { limit, offset, page } = pagination(url);
   const [rows, totalRows, summary] = await Promise.all([
     db
-      .select(selectFields)
+      .select(fields)
       .from(smsMessages)
       .leftJoin(smsRanges, eq(smsMessages.rangeId, smsRanges.id))
       .leftJoin(clients, eq(smsMessages.clientId, clients.id))

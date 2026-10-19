@@ -1,7 +1,8 @@
-import { and, count, desc, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { smsMessages } from "@/db/schema";
 import { ok, requireAuth } from "@/lib/http";
+import { assignedNumberIds, isAdmin } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 
@@ -11,31 +12,51 @@ function startOfToday(): Date {
   return d;
 }
 
+/**
+ * Dashboard KPIs. Admins see platform-wide totals; the user edition is
+ * scoped to the account's own assigned numbers and never exposes suppliers.
+ */
 export async function GET() {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
+  const admin = isAdmin(auth.user!);
   const today = startOfToday();
   const weekAgo = new Date(today.getTime() - 6 * 86400000);
   const twoWeeksAgo = new Date(today.getTime() - 13 * 86400000);
-  const live = eq(smsMessages.isTest, false);
+
+  let scopeFilter = eq(smsMessages.isTest, false);
+  if (!admin) {
+    const ids = await assignedNumberIds(auth.user!.id);
+    if (ids.length === 0) {
+      return ok({
+        todayCount: 0,
+        weekHits: 0,
+        lastWeekHits: 0,
+        trendPct: null,
+        statusBreakdown: [],
+        series: [],
+        recent: [],
+        balances: { USD: auth.user!.balanceUsd, EUR: auth.user!.balanceEur, EGP: auth.user!.balanceEgp },
+      });
+    }
+    scopeFilter = and(eq(smsMessages.isTest, false), inArray(smsMessages.numberId, ids))!;
+  }
 
   const [todayCount, weekHits, lastWeekHits, statusBreakdown, series, recent] = await Promise.all([
-    db.select({ value: count() }).from(smsMessages).where(and(live, gte(smsMessages.createdAt, today))),
+    db.select({ value: count() }).from(smsMessages).where(and(scopeFilter, gte(smsMessages.createdAt, today))),
     db
       .select({ value: count() })
       .from(smsMessages)
-      .where(and(live, gte(smsMessages.createdAt, weekAgo), isNotNull(smsMessages.otpCode))),
+      .where(and(scopeFilter, gte(smsMessages.createdAt, weekAgo), isNotNull(smsMessages.otpCode))),
     db
       .select({ value: count() })
       .from(smsMessages)
-      .where(
-        and(live, gte(smsMessages.createdAt, twoWeeksAgo), lt(smsMessages.createdAt, weekAgo), isNotNull(smsMessages.otpCode))
-      ),
+      .where(and(scopeFilter, gte(smsMessages.createdAt, twoWeeksAgo), lt(smsMessages.createdAt, weekAgo), isNotNull(smsMessages.otpCode))),
     db
       .select({ status: smsMessages.status, value: count() })
       .from(smsMessages)
-      .where(and(live, gte(smsMessages.createdAt, weekAgo)))
+      .where(and(scopeFilter, gte(smsMessages.createdAt, weekAgo)))
       .groupBy(smsMessages.status),
     db
       .select({
@@ -44,7 +65,7 @@ export async function GET() {
         hits: sql<number>`count(${smsMessages.otpCode})`,
       })
       .from(smsMessages)
-      .where(and(live, gte(smsMessages.createdAt, weekAgo)))
+      .where(and(scopeFilter, gte(smsMessages.createdAt, weekAgo)))
       .groupBy(sql`1`),
     db
       .select({
@@ -53,11 +74,11 @@ export async function GET() {
         senderId: smsMessages.senderId,
         otpCode: smsMessages.otpCode,
         status: smsMessages.status,
-        supplier: smsMessages.supplier,
+        ...(admin ? { supplier: smsMessages.supplier } : {}),
         createdAt: smsMessages.createdAt,
       })
       .from(smsMessages)
-      .where(live)
+      .where(scopeFilter)
       .orderBy(desc(smsMessages.id))
       .limit(6),
   ]);
