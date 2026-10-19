@@ -1,6 +1,7 @@
 "use client";
 
 import ConnectionBanner from "@/components/connection-banner";
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   Eye,
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   ShieldCheck,
   User2,
+  UserPlus2,
   Waves,
   Zap,
 } from "lucide-react";
@@ -322,6 +324,17 @@ export default function LoginScreen() {
                 First boot? Create the admin account &amp; continue
               </button>
             )}
+
+            <div className="mt-5 border-t border-slate-100 pt-5 text-center">
+              <p className="text-[12.5px] text-slate-500">معندكش حساب؟</p>
+              <Link
+                href="/register"
+                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 text-[13px] font-semibold text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-50 active:scale-[0.99]"
+              >
+                <UserPlus2 className="h-4 w-4" strokeWidth={2} />
+                إنشاء حساب جديد · Create account
+              </Link>
+            </div>
           </div>
 
           <p className="tnum mt-6 text-center text-[10px] tracking-[0.18em] text-slate-400">
