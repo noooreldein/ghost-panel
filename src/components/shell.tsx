@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "@/components/sidebar";
+import ConnectionBanner from "@/components/connection-banner";
 import Topbar from "@/components/topbar";
 import { cx } from "@/components/ui";
 import { CURRENCIES, getCookie, setCookie, type Currency } from "@/lib/client";
@@ -57,6 +58,7 @@ export default function Shell({ user, settings, children }: { user: SafeUser; se
   return (
     <div className="min-h-screen bg-slate-100">
       {themeOverride && <style id="ghost-theme" dangerouslySetInnerHTML={{ __html: themeOverride }} />}
+      <ConnectionBanner />
       <Topbar onMenu={onMenu} user={user} currency={currency} onCurrency={changeCurrency} panelName={settings.panelName} />
       <Sidebar
         collapsed={rail}

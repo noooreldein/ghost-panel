@@ -21,8 +21,52 @@ async function parse(res: Response) {
   return json;
 }
 
-export async function apiGet<T = any>(url: string): Promise<T> {
-  return parse(await fetch(url, { cache: "no-store", credentials: "include" })) as Promise<T>;
+/* ------------------------------------------------------------------ */
+/*  Server & network resilience                                       */
+/* ------------------------------------------------------------------ */
+
+const TIMEOUT_MS = 12_000;
+const NETWORK_MSG = "تعذر الوصول إلى السيرفر — تحقق من اتصالك بالإنترنت (connection lost)";
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Any request must fail within a hard deadline — never hang the UI. */
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+}
+
+/** True for transient failures worth retrying: network drops, timeouts, gateway 5xx. */
+function isRetryable(e: unknown): boolean {
+  if (e instanceof ApiError) return e.status === 502 || e.status === 503 || e.status === 504 || e.status === 429;
+  return true; // TypeError from fetch / AbortSignal TimeoutError / DNS hiccups
+}
+
+/** Translate raw browser failures into something a human can act on. */
+function toFriendlyError(e: unknown): Error {
+  if (e instanceof ApiError) return e;
+  if (e instanceof Error) {
+    if (e.name === "TimeoutError" || e.name === "AbortError") return new ApiError(`${NETWORK_MSG} — انتهت مهلة الطلب (timeout)`, 0);
+    if (/fetch|network|ERR_/i.test(e.message)) return new ApiError(NETWORK_MSG, 0);
+  }
+  return e instanceof Error ? e : new Error(NETWORK_MSG);
+}
+
+export async function apiGet<T = any>(url: string, retries = 2): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return (await parse(await fetchWithTimeout(url, { cache: "no-store", credentials: "include" }))) as T;
+    } catch (e) {
+      // GETs are idempotent: back off and retry transient failures, then
+      // surface a friendly message instead of "Failed to fetch".
+      if (attempt < retries && isRetryable(e)) {
+        await sleep(450 * 2 ** attempt);
+        continue;
+      }
+      throw toFriendlyError(e);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,14 +107,21 @@ export async function apiGetCached<T = any>(url: string, ttlMs = 30000): Promise
 }
 
 export async function apiPost<T = any>(url: string, body?: unknown, method = "POST"): Promise<T> {
-  const out = (await parse(
-    await fetch(url, {
-      method,
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    })
-  )) as T;
+  // Writes are never auto-retried (an SMS send or a payment must not fire
+  // twice), but they get the same hard deadline and friendly failure text.
+  let out: T;
+  try {
+    out = (await parse(
+      await fetchWithTimeout(url, {
+        method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      })
+    )) as T;
+  } catch (e) {
+    throw toFriendlyError(e);
+  }
   bustGetCache(); // a successful write invalidates every cached read
   return out;
 }

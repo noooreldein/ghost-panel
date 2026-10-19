@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { panelSettings } from "@/db/schema";
+import { bustPanelSettingsCache } from "@/lib/settings";
 import { audit } from "@/lib/audit";
 import { getSessionUser, toSafeUser } from "@/lib/auth";
 import { fail, ok, requireAuth, str } from "@/lib/http";
@@ -66,6 +67,7 @@ export async function PATCH(req: Request) {
       .returning();
   }
 
+  bustPanelSettingsCache(); // apply the new identity immediately, not after TTL
   await audit(auth.user!.id, "settings.branding", "panel_settings", String(row.id), {
     panelName: row.panelName,
     theme: row.theme,

@@ -37,7 +37,15 @@ interface AuthResult {
 }
 
 export async function requireAuth(roles?: string[]): Promise<AuthResult> {
-  const user = await getSessionUser();
+  let user: User | null;
+  try {
+    user = await getSessionUser();
+  } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return { user: null, error: fail("Panel database is unreachable — please retry in a moment.", 503) };
+    }
+    throw error;
+  }
   if (!user) return { user: null, error: fail("Unauthorized. Please sign in.", 401) };
   if (roles && !roles.includes(user.role)) {
     return { user: null, error: fail("Forbidden: insufficient permissions.", 403) };

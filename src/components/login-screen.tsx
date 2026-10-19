@@ -1,5 +1,6 @@
 "use client";
 
+import ConnectionBanner from "@/components/connection-banner";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   Eye,
@@ -100,6 +101,7 @@ export default function LoginScreen() {
 
   return (
     <div className="grid min-h-screen bg-slate-100 lg:grid-cols-[1.05fr_1fr]">
+      <ConnectionBanner />
       {/* ---------- brand / art panel ---------- */}
       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-700 lg:block">
         <div className="bg-grid-light absolute inset-0" />
