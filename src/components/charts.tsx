@@ -147,7 +147,7 @@ export function Donut({
     <div className="flex items-center gap-6">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={thickness} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#1e293b" strokeWidth={thickness} />
           {total > 0 &&
             slices.map((s, i) => {
               const frac = s.value / total;
