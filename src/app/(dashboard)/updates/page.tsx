@@ -1,0 +1,28 @@
+"use client";
+
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Archive, BellRing, CheckCircle2, Megaphone, Plus, Send, ShieldAlert, X } from "lucide-react";
+import { apiGet, apiPatch, apiPost, fmtDateTime } from "@/lib/client";
+import { useMe } from "@/lib/use-me";
+import { Badge, Btn, Card, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+
+type Announcement = { id: number; title: string; body: string; tone: "info" | "success" | "warning" | "critical"; audience: string; status: string; publishedAt: string | null; createdAt: string };
+const TONE: Record<Announcement["tone"], { badge: "blue" | "emerald" | "amber" | "rose"; label: string; icon: typeof BellRing }> = {
+  info: { badge: "blue", label: "معلومة", icon: BellRing }, success: { badge: "emerald", label: "تحديث ناجح", icon: CheckCircle2 }, warning: { badge: "amber", label: "تنبيه", icon: ShieldAlert }, critical: { badge: "rose", label: "عاجل", icon: ShieldAlert },
+};
+
+export default function UpdatesPage() {
+  const me = useMe(); const admin = me?.role === "admin";
+  const [items, setItems] = useState<Announcement[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false); const [saving, setSaving] = useState(false);
+  const load = useCallback(async () => { setLoading(true); try { const data = await apiGet<{ announcements: Announcement[] }>("/api/announcements"); setItems(data.announcements); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "تعذر تحميل التحديثات."); } finally { setLoading(false); } }, []);
+  useEffect(() => { void load(); }, [load]);
+  async function publish(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const fd = new FormData(event.currentTarget); setSaving(true); try { await apiPost("/api/announcements", Object.fromEntries(fd.entries())); setShowForm(false); await load(); } catch (e) { setError(e instanceof Error ? e.message : "تعذر نشر الإشعار."); } finally { setSaving(false); } }
+  async function setStatus(item: Announcement, status: "published" | "archived") { try { await apiPatch("/api/announcements", { id: item.id, status }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "تعذر تحديث الإشعار."); } }
+  return <div>
+    <PageHeader icon={Megaphone} title="التحديثات التشغيلية" subtitle="إشعارات واضحة للفريق والعملاء عن الخدمة والمسارات والصيانة." actions={admin ? <Btn icon={Plus} onClick={() => setShowForm(true)}>نشر تحديث</Btn> : undefined} />
+    {error && <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+    {showForm && <Card className="mb-4 p-5"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-semibold text-slate-900">تحديث جديد</h2><p className="mt-1 text-xs text-slate-500">ينشر فورًا للجمهور الذي تختاره.</p></div><button onClick={() => setShowForm(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4"/></button></div><form onSubmit={publish} className="grid gap-4 sm:grid-cols-2"><Field label="العنوان"><Input name="title" maxLength={180} required placeholder="مثال: صيانة مجدولة لمسار المملكة المتحدة" /></Field><Field label="الجمهور"><Select name="audience" defaultValue="all"><option value="all">الجميع</option><option value="user">المستخدمون</option><option value="supplier">المزودون</option><option value="admin">المديرون</option></Select></Field><Field label="الأولوية"><Select name="tone" defaultValue="info"><option value="info">معلومة</option><option value="success">تحديث ناجح</option><option value="warning">تنبيه</option><option value="critical">عاجل</option></Select></Field><div className="hidden sm:block"/><div className="sm:col-span-2"><Field label="النص"><Textarea name="body" maxLength={4000} required placeholder="اكتب ما يحتاجه الجمهور لاتخاذ قرار واضح…"/></Field></div><div className="flex justify-end gap-2 sm:col-span-2"><Btn type="button" variant="outline" onClick={() => setShowForm(false)}>إلغاء</Btn><Btn type="submit" icon={Send} loading={saving}>نشر</Btn></div></form></Card>}
+    <div className="space-y-3">{loading ? <Card className="p-10 text-center text-sm text-slate-400">جارٍ التحميل…</Card> : items.length === 0 ? <Card className="p-10 text-center"><BellRing className="mx-auto h-8 w-8 text-slate-300"/><p className="mt-3 font-semibold text-slate-700">لا توجد تحديثات حاليًا</p></Card> : items.map((item) => { const type = TONE[item.tone]; const Icon = type.icon; return <Card key={item.id} className={item.status === "archived" ? "opacity-60" : ""}><div className="flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-blue-600"><Icon className="h-5 w-5"/></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-slate-900">{item.title}</h2><Badge tone={type.badge}>{type.label}</Badge>{admin && <Badge tone={item.status === "published" ? "emerald" : "slate"}>{item.status === "published" ? "منشور" : "مؤرشف"}</Badge>}</div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{item.body}</p><p className="mt-3 text-xs text-slate-400">{item.publishedAt ? fmtDateTime(item.publishedAt) : fmtDateTime(item.createdAt)} · {item.audience === "all" ? "الجميع" : item.audience}</p></div>{admin && <Btn size="sm" variant="ghost" icon={item.status === "published" ? Archive : Send} onClick={() => void setStatus(item, item.status === "published" ? "archived" : "published")}>{item.status === "published" ? "أرشفة" : "نشر"}</Btn>}</div></Card>; })}</div>
+  </div>;
+}

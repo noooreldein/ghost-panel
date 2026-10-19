@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.06);
+  --shadow-lift: 0 8px 32px -8px rgb(29 78 216 / 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+/* ---- scrollbars ------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(148 163 184 / 0.45);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- ambient textures ------------------------------------------- */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(100 116 139 / 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(100 116 139 / 0.09) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.bg-grid-light {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.bg-dots {
+  background-image: radial-gradient(rgb(100 116 139 / 0.16) 1px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+/* ---- keyframes --------------------------------------------------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  50% { opacity: 0.75; box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+}
+@keyframes pulse-dot-blue {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+}
+@keyframes radar-sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(-6px); }
+  50% { transform: translateY(6px); }
+}
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes signal-bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+@keyframes dash-flow {
+  to { stroke-dashoffset: -28; }
+}
+
+.animate-fade-up { animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.4s ease both; }
+.animate-pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+.animate-pulse-dot-blue { animation: pulse-dot-blue 2s ease-in-out infinite; }
+.animate-radar { animation: radar-sweep 7s linear infinite; }
+.animate-float { animation: float-y 6s ease-in-out infinite; }
+.animate-shake { animation: shake-x 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+.shimmer {
+  background: linear-gradient(110deg, rgb(241 245 249) 35%, rgb(226 232 240) 50%, rgb(241 245 249) 65%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* skeleton block */
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(110deg, rgb(241 245 249) 35%, rgb(226 232 240) 50%, rgb(241 245 249) 65%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* signal bars (login art) */
+.signal-bar {
+  transform-origin: bottom;
+  animation: signal-bar 1.8s ease-in-out infinite;
+}
+
+/* mono tabular numbers for data */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
